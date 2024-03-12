@@ -1,0 +1,9 @@
+mixed-collective-barrier
+mixed-collective-barrier.o
+mixed-collective-deadlock
+mixed-collective-deadlock.o
+
+opposite-order-deadlock
+opposite-order-deadlock.o
+opposite-order-barrier
+opposite-order-barrier.o
