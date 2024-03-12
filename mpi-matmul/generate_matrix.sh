@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 echo "generate test-matrices with python3 if no test data found"
 echo
 
