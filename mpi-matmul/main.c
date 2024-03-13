@@ -137,13 +137,12 @@ int main(int argc, char *argv[]) {
 
   end_compute = getmicrosec();
 
-
   free(result_matrix);
   free(final_matrix);
 
   MPI_Finalize();
 
-  printf("np:%d rank:%d size:%dx%d compute ns: %lld comm ns: %lld\n",
+  printf("np:%d rank:%d size:%dx%d compute us: %lld comm us: %lld\n",
          num_worker, rank, matrix_properties[0], matrix_properties[3],
          end_compute - start_compute, end_comm - start_comm);
 
