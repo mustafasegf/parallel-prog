@@ -37,12 +37,15 @@ int main(int argc, char *argv[]) {
 
   int num_worker, rank;
 
+  long long start_compute, end_compute, start_comm, end_comm;
+  start_compute = getmicrosec();
+
   MPI_Init(&argc, &argv);
   MPI_Comm_size(MPI_COMM_WORLD, &num_worker);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-  char filename[15];
-  sprintf(filename, "time_%d.txt", rank);
+  char filename[15] = "time.txt";
+  // sprintf(filename, "time_%d.txt", rank);
   FILE *fp = fopen(filename, "a+");
 
   /** the master initializes the data **/
@@ -101,13 +104,15 @@ int main(int argc, char *argv[]) {
     m_b = malloc(size_b * sizeof(double));
   }
 
-  fprintf(fp, "[S] %d %d %lld\n", size_a, size_b, getmicrosec());
+  // fprintf(fp, "[S] %d %d %lld\n", size_a, size_b, getmicrosec());
+  start_comm = getmicrosec();
 
   // send 1D matrices to workers
   MPI_Bcast(m_a, size_a, MPI_DOUBLE, 0, MPI_COMM_WORLD);
   MPI_Bcast(m_b, size_b, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-  fprintf(fp, "[F] %d %d %lld\n", size_a, size_b, getmicrosec());
+  // fprintf(fp, "[F] %d %d %lld\n", size_a, size_b, getmicrosec());
+  end_comm = getmicrosec();
 
   // calculate the start- and endrow for worker
   int startrow = rank * (matrix_properties[0] / num_worker);
@@ -136,23 +141,35 @@ int main(int argc, char *argv[]) {
   MPI_Gather(result_matrix, number_of_rows, MPI_DOUBLE, final_matrix,
              number_of_rows, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-  /** The master presents the results on the console */
-  if (rank == 0) {
-    int size = matrix_properties[0] * matrix_properties[3];
-    int i = 0;
-    while (i < size) {
-      printf("%lf\t", final_matrix[i]);
-      i++;
+  end_compute = getmicrosec();
 
-      if (i % matrix_properties[3] == 0)
-        printf("\n");
-    }
-  }
+  // /** The master presents the results on the console */
+  // if (rank == 0) {
+  //   int size = matrix_properties[0] * matrix_properties[3];
+  //   int i = 0;
+  //   while (i < size) {
+  //     printf("%lf\t", final_matrix[i]);
+  //     i++;
+  //
+  //     if (i % matrix_properties[3] == 0)
+  //       printf("\n");
+  //   }
+  // }
 
   free(result_matrix);
   free(final_matrix);
-  fclose(fp);
 
   MPI_Finalize();
+
+  fprintf(fp, "rank: %d size:%dx%d compute ns: %lld comm ns: %lld\n", rank,
+          matrix_properties[0], matrix_properties[3],
+          end_compute - start_compute, end_comm - start_comm);
+
+  printf("rank: %d size:%dx%d compute ns: %lld comm ns: %lld\n", rank,
+         matrix_properties[0], matrix_properties[3],
+         end_compute - start_compute, end_comm - start_comm);
+
+  fclose(fp);
+
   exit(EXIT_SUCCESS);
 }

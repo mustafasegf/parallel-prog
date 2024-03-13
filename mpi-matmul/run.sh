@@ -21,33 +21,20 @@ MATRIX_SIZES=(
 	2048
 )
 
-# delete old files
-rm -f test-matrix.txt
-rm -f text-vector.txt
+echo -n > time.txt
 
-for SZ in "${NPS[@]}" 
-do 
-  rm -f "time_{SZ}.txt"
+for SZ in "${MATRIX_SIZES[@]}"; do
+	echo "* * * * * * * ${SZ}x${SZ} Matrix"
+	for PROC in "${NPS[@]}"; do
+		mpirun -np "${PROC}" main "data/mat_${SZ}x${SZ}.txt" "data/mat_${SZ}x${SZ}b.txt"
+	done
+  echo "" >> time.txt
 done
 
-for SZ in "${MATRIX_SIZES[@]}"
-do
-    echo "* * * * * * * ${SZ}x${SZ} Matrix" | tee -a test-matrix.txt
-    for PROC in "${NPS[@]}"
-    do
-        cal_t=$( (time mpirun -np "${PROC}" main "data/mat_${SZ}x${SZ}.txt" "data/mat_${SZ}x${SZ}b.txt")  2>&1 > /dev/null | grep real | awk '{print $2}')
-        echo "with mpi(${PROC})     $cal_t"  | tee -a test-matrix.txt
-        echo ""  | tee -a test-matrix.txt
-    done
-done
-
-for SZ in "${MATRIX_SIZES[@]}"
-do
-    echo "* * * * * * * ${SZ}x1 Matrix" | tee -a test-vector.txt
-    for PROC in "${NPS[@]}"
-    do
-        cal_t=$( (time mpirun -np "${PROC}" main "data/mat_${SZ}x${SZ}.txt" "data/mat_${SZ}x1.txt")  2>&1 > /dev/null | grep real | awk '{print $2}')
-        echo "with mpi(${PROC})     $cal_t" | tee -a test-vector.txt
-        echo | tee -a test-vector.txt
-    done
+for SZ in "${MATRIX_SIZES[@]}"; do
+	echo "* * * * * * * ${SZ}x1 Matrix"
+	for PROC in "${NPS[@]}"; do
+		mpirun -np "${PROC}" main "data/mat_${SZ}x${SZ}.txt" "data/mat_${SZ}x1.txt"
+	done
+  echo "" >> time.txt
 done
