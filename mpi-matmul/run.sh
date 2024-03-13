@@ -42,7 +42,7 @@ for SZ in "${MATRIX_SIZES[@]}"; do
       } END  {  
         comm = int(comm / $2);
         compute = int(compute / $2);
-        printf "np:%-1d %-16s compute: %-10'"'"'d comm: %-5'"'"'d (%'"'"'d/%'"'"'d)\n", $2, $4, compute, comm, compute, comm;
+        printf "np:%-3d %-16s compute: %-10'"'"'d comm: %-10'"'"'d (%'"'"'d/%'"'"'d)\n", $2, $4, compute, comm, compute, comm;
       }' | tee -a time_summary.txt
 	done
 	echo "" | tee -a time.txt
@@ -62,7 +62,7 @@ for SZ in "${MATRIX_SIZES[@]}"; do
       } END  {  
         comm = int(comm / $2);
         compute = int(compute / $2);
-        printf "np:%-1d %-16s compute: %-10'"'"'d comm: %-5'"'"'d (%'"'"'d/%'"'"'d)\n", $2, $4, compute, comm, compute, comm;
+        printf "np:%-3d %-16s compute: %-10'"'"'d comm: %-10'"'"'d (%'"'"'d/%'"'"'d)\n", $2, $4, compute, comm, compute, comm;
       }' | tee -a time_summary.txt
 	done
 	echo "" | tee -a time.txt
