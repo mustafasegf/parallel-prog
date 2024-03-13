@@ -21,20 +21,32 @@ MATRIX_SIZES=(
 	2048
 )
 
-echo -n > time.txt
+rm -f time_old.txt
+rm -f time_summary_old.txt
+
+cp time.txt time_old.txt
+cp time_summary.txt time_summary_old.txt
+
+echo -n >time.txt
+echo -n >time_summary.txt
 
 for SZ in "${MATRIX_SIZES[@]}"; do
 	echo "* * * * * * * ${SZ}x${SZ} Matrix"
 	for PROC in "${NPS[@]}"; do
-		mpirun -np "${PROC}" main "data/mat_${SZ}x${SZ}.txt" "data/mat_${SZ}x${SZ}b.txt"
+		OUTPUT=$(mpirun -np "${PROC}" main "data/mat_${SZ}x${SZ}.txt" "data/mat_${SZ}x${SZ}b.txt")
+		echo "${OUTPUT}" >>time.txt
+		echo "${OUTPUT}" | awk '{compute += $6; comm += $9;} END {  print $1 " " $3 " compute:" compute " comm:" comm;}' | tee -a time_summary.txt
 	done
-  echo "" >> time.txt
+	echo "" | tee -a time.txt
+
 done
 
 for SZ in "${MATRIX_SIZES[@]}"; do
 	echo "* * * * * * * ${SZ}x1 Matrix"
 	for PROC in "${NPS[@]}"; do
-		mpirun -np "${PROC}" main "data/mat_${SZ}x${SZ}.txt" "data/mat_${SZ}x1.txt"
+		OUTPUT=$(mpirun -np "${PROC}" main "data/mat_${SZ}x${SZ}.txt" "data/mat_${SZ}x1.txt")
+		echo "${OUTPUT}" >>time.txt
+		echo "${OUTPUT}" | awk '{compute += $6; comm += $9;} END {  print $1 " " $3 " compute:" compute " comm:" comm;}' | tee -a time_summary.txt
 	done
-  echo "" >> time.txt
+	echo "" | tee -a time.txt
 done
