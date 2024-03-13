@@ -35,7 +35,15 @@ for SZ in "${MATRIX_SIZES[@]}"; do
 	for PROC in "${NPS[@]}"; do
 		OUTPUT=$(mpirun -np "${PROC}" main "data/mat_${SZ}x${SZ}.txt" "data/mat_${SZ}x${SZ}b.txt")
 		echo "${OUTPUT}" >>time.txt
-		echo "${OUTPUT}" | awk '{compute += $7; comm += $10;} END {  print "np: " $2 " " $4 " compute:" int(compute / $2) " comm:" int(comm / $2) " (" int(compute / $2) "/" int(comm / $2) ")";}' | tee -a time_summary.txt
+		echo "${OUTPUT}" | LC_ALL=id_ID.UTF-8 awk '
+      {
+        compute += $7; 
+        comm += $10;
+      } END  {  
+        comm = int(comm / $2);
+        compute = int(compute / $2);
+        printf "np:%d %-16s compute: %-8d comm: %-5d (%d/%d)\n", $2, $4, compute, comm, compute, comm;
+      }' | tee -a time_summary.txt
 	done
 	echo "" | tee -a time.txt
 	echo "" | tee -a time_summary.txt
@@ -47,7 +55,15 @@ for SZ in "${MATRIX_SIZES[@]}"; do
 	for PROC in "${NPS[@]}"; do
 		OUTPUT=$(mpirun -np "${PROC}" main "data/mat_${SZ}x${SZ}.txt" "data/mat_${SZ}x1.txt")
 		echo "${OUTPUT}" >>time.txt
-		echo "${OUTPUT}" | awk '{compute += $7; comm += $10;} END {  print "np: " $2 " " $4 " compute:" int(compute / $2) " comm:" int(comm / $2) " (" int(compute / $2) "/" int(comm / $2) ")";}' | tee -a time_summary.txt
+		echo "${OUTPUT}" | LC_ALL=id_ID.UTF-8 awk '
+      {
+        compute += $7; 
+        comm += $10;
+      } END  {  
+        comm = int(comm / $2);
+        compute = int(compute / $2);
+        printf "np:%d %-16s compute: %-8d comm: %-5d (%d/%d)\n", $2, $4, compute, comm, compute, comm;
+      }' | tee -a time_summary.txt
 	done
 	echo "" | tee -a time.txt
 	echo "" | tee -a time_summary.txt
