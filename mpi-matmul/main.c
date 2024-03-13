@@ -38,7 +38,6 @@ int main(int argc, char *argv[]) {
   int num_worker, rank;
 
   long long start_compute, end_compute, start_comm, end_comm;
-  start_compute = getmicrosec();
 
   MPI_Init(&argc, &argv);
   MPI_Comm_size(MPI_COMM_WORLD, &num_worker);
@@ -113,6 +112,8 @@ int main(int argc, char *argv[]) {
   int endrow = ((rank + 1) * (matrix_properties[0] / num_worker)) - 1;
 
   /* calculate sub matrices */
+
+  start_compute = getmicrosec();
   int number_of_rows = size_res / num_worker;
   double *result_matrix = calloc(number_of_rows, sizeof(double));
 
@@ -142,7 +143,7 @@ int main(int argc, char *argv[]) {
 
   MPI_Finalize();
 
-  printf("np:%d rank:%d size:%dx%d compute us: %lld comm us: %lld\n",
+  printf("np: %d rank:%d size:%dx%d compute us: %lld comm us: %lld\n",
          num_worker, rank, matrix_properties[0], matrix_properties[3],
          end_compute - start_compute, end_comm - start_comm);
 
