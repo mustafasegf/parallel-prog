@@ -24,8 +24,8 @@ MATRIX_SIZES=(
 rm -f time_old.txt
 rm -f time_summary_old.txt
 
-cp time.txt time_old.txt
-cp time_summary.txt time_summary_old.txt
+[ -f "time.txt" ] && cp time.txt time_old.txt
+[ -f "time_summary.txt" ] && cp time_summary.txt time_summary_old.txt
 
 echo -n >time.txt
 echo -n >time_summary.txt
@@ -38,6 +38,7 @@ for SZ in "${MATRIX_SIZES[@]}"; do
 		echo "${OUTPUT}" | awk '{compute += $6; comm += $9;} END {  print $1 " " $3 " compute:" compute " comm:" comm;}' | tee -a time_summary.txt
 	done
 	echo "" | tee -a time.txt
+  echo "" | tee -a time_summary.txt
 
 done
 
@@ -49,4 +50,5 @@ for SZ in "${MATRIX_SIZES[@]}"; do
 		echo "${OUTPUT}" | awk '{compute += $6; comm += $9;} END {  print $1 " " $3 " compute:" compute " comm:" comm;}' | tee -a time_summary.txt
 	done
 	echo "" | tee -a time.txt
+  echo "" | tee -a time_summary.txt
 done
