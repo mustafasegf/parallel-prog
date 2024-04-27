@@ -1,0 +1,13 @@
+[
+  {
+    "arguments": [
+      "/nix/store/gnz32g9axl7vxg1snkkjnyp5w2vpfb03-cudatoolkit-12.2.2/bin/nvcc",
+      "-c",
+      "--cuda-gpu-arch=sm_86",
+      "--no-cuda-version-check",
+      "minimal.cu"
+    ],
+    "directory": "/home/mustafa/project/parallel-prog/cuda-minimal",
+    "file": "/home/mustafa/project/parallel-prog/cuda-minimal/minimal.cu"
+  }
+]
