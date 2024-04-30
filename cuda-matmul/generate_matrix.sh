@@ -3,6 +3,7 @@ echo "generate test-matrices with python3 if no test data found"
 echo
 
 MATRIX_SIZES=(
+  2
 	128
 	256
 	512

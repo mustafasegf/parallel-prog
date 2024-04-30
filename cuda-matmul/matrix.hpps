@@ -1,0 +1,30 @@
+#include <cstdlib>
+#include <memory>
+#include <stdexcept>
+#include <xmmintrin.h>
+
+template <typename T> class AlignedAllocator : public std::allocator<T> {
+public:
+  typedef std::size_t size_type;
+  typedef T *pointer;
+  typedef const T *const_pointer;
+
+  template <typename U> struct rebind {
+    typedef AlignedAllocator<U> other;
+  };
+
+  AlignedAllocator() noexcept {}
+
+  template <typename U>
+  AlignedAllocator(const AlignedAllocator<U> &) noexcept {}
+
+  pointer allocate(size_type num, const void *hint = 0) {
+    pointer ret = (pointer)_mm_malloc(num * sizeof(T), 64);
+    if (ret == nullptr) {
+      throw std::bad_alloc();
+    }
+    return ret;
+  }
+
+  void deallocate(pointer p, size_type num) { _mm_free(p); }
+};

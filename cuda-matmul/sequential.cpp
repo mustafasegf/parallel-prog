@@ -1,6 +1,7 @@
-#include "matrix.hpp"
+#include "matrix.cpp"
 #include <chrono>
 #include <iostream>
+#include <stdint.h>
 
 int main(int argc, char *argv[]) {
   if (argc != 3) {
@@ -9,28 +10,37 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  matrix_struct *m_1 = get_matrix_struct(argv[1]);
-  matrix_struct *m_2 = get_matrix_struct(argv[2]);
+  try {
+    Matrix<int64_t> matrix1(argv[1]);
+    Matrix<int64_t> matrix2(argv[2]);
 
-  double *answer = (double *)malloc(m_1->rows * m_2->cols * sizeof(double));
+    Matrix<int64_t> answer(matrix1.rows, matrix2.cols);
 
-  auto start = std::chrono::high_resolution_clock::now();
-  for (unsigned int i = 0; i < m_1->rows; i++) {
-    for (unsigned int j = 0; j < m_2->cols; j++) {
-      answer[i * m_2->cols + j] = 0;
-      for (unsigned int k = 0; k < m_1->cols; k++) {
-        answer[i * m_2->cols + j] += m_1->mat_data[i][k] * m_2->mat_data[k][j];
+    auto start = std::chrono::high_resolution_clock::now();
+
+    for (size_t i = 0; i < matrix1.rows; i++) {
+      for (size_t j = 0; j < matrix2.cols; j++) {
+        answer[i][j] = 0;
+        for (size_t k = 0; k < matrix1.cols; k++) {
+          answer[i][j] += matrix1[i][k] * matrix2[k][j];
+        }
       }
     }
+
+    auto end = std::chrono::high_resolution_clock::now();
+
+    std::chrono::duration<double, std::micro> duration = end - start;
+
+    std::cout << "size: " << matrix1.rows << "x" << matrix2.cols
+              << " compute us: " << duration.count() << " comm us: 0"
+              << std::endl;
+
+    std::cout << answer << std::endl;
+
+  } catch (const std::exception &e) {
+    std::cerr << "Exception: " << e.what() << std::endl;
+    return 1;
   }
-
-  auto end = std::chrono::high_resolution_clock::now();
-
-  std::chrono::duration<double, std::micro> duration = end - start;
-
-  std::cout << "size: " << m_1->rows << "x" << m_2->cols
-            << " compute us: " << duration.count() << " comm us: 0"
-            << std::endl;
 
   return 0;
 }

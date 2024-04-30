@@ -1,65 +1,120 @@
-#include "matrix.hpp"
-#include <malloc.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <stdexcept>
+#include <vector>
+#include <xmmintrin.h>
 
-matrix_struct *get_matrix_struct(char matrix[]) {
-  matrix_struct *m = (matrix_struct *)aligned_alloc(64, sizeof(matrix_struct));
-  m->rows = 0;
-  m->cols = 0;
-  FILE *myfile = fopen(matrix, "r");
+template <typename T> class AlignedAllocator {
+public:
+  using value_type = T;
+  using pointer = T *;
+  using const_pointer = const T *;
+  using size_type = size_t;
 
-  if (myfile == NULL) {
-    printf("Error: The file you entered could not be found.\n");
-    exit(EXIT_FAILURE);
+  AlignedAllocator() noexcept {}
+
+  template <typename U>
+  AlignedAllocator(const AlignedAllocator<U> &) noexcept {}
+
+  pointer allocate(size_type num, const void * = 0) {
+    pointer ret = (pointer)_mm_malloc(num * sizeof(T), 64);
+    if (ret == nullptr) {
+      throw std::bad_alloc();
+    }
+    return ret;
   }
 
-  int ch = 0;
-  do {
-    ch = fgetc(myfile);
+  void deallocate(pointer p, size_type) { _mm_free(p); }
+};
 
-    if (m->rows == 0 && ch == '\t')
-      m->cols++;
+template <typename T> class Matrix {
+private:
+  std::vector<T, AlignedAllocator<T>> data;
 
-    if (ch == '\n')
-      m->rows++;
+public:
+  size_t rows, cols;
+  Matrix(size_t rows, size_t cols)
+      : data(rows * cols, 0, AlignedAllocator<T>()), rows(rows), cols(cols) {}
 
-  } while (ch != EOF);
+  explicit Matrix(const std::string &filename) {
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+      throw std::runtime_error(
+          "Error: The file you entered could not be found.");
+    }
 
-  m->cols++; // Adjust column count for the last column
+    std::vector<T> loadedData;
+    std::string line;
+    size_t numCols = 0;
 
-  m->mat_data = (double **)malloc(m->rows * sizeof(double *));
-  for (unsigned int i = 0; i < m->rows; ++i)
-    m->mat_data[i] = (double *)aligned_alloc(64, m->cols * sizeof(double));
+    while (getline(file, line)) {
+      std::istringstream iss(line);
+      T num;
+      std::vector<T> row;
+      while (iss >> num) {
+        row.push_back(num);
+      }
+      if (!row.empty()) {
+        if (numCols == 0) {
+          numCols = row.size();
+        } else if (row.size() != numCols) {
+          throw std::runtime_error("Error: Irregular matrix shape detected.");
+        }
+        loadedData.insert(loadedData.end(), row.begin(), row.end());
+      }
+    }
 
-  rewind(myfile);
-  unsigned int x, y;
+    if (loadedData.empty() || numCols == 0) {
+      throw std::runtime_error("Error: Empty matrix or incorrect data.");
+    }
 
-  for (x = 0; x < m->rows; x++) {
-    for (y = 0; y < m->cols; y++) {
-      if (fscanf(myfile, "%lf", &m->mat_data[x][y]) != 1)
-        break;
+    rows = loadedData.size() / numCols;
+    cols = numCols;
+    data = std::vector<T, AlignedAllocator<T>>(loadedData.begin(),
+                                               loadedData.end());
+  }
+
+  T &operator()(size_t row, size_t col) { return data[row * cols + col]; }
+
+  const T &operator()(size_t row, size_t col) const {
+    return data[row * cols + col];
+  }
+
+  T *operator[](size_t row) { return &data[row * cols]; }
+
+  const T *operator[](size_t row) const { return &data[row * cols]; }
+
+  Matrix<T> &operator+=(const Matrix<T> &rhs) {
+    if (this->rows != rhs.rows || this->cols != rhs.cols) {
+      throw std::runtime_error(
+          "Error: Matrices dimensions mismatch for addition.");
+    }
+    for (size_t i = 0; i < rows; ++i) {
+      for (size_t j = 0; j < cols; ++j) {
+        (*this)[i][j] += rhs[i][j];
+      }
+    }
+    return *this;
+  }
+
+  // Overload the << operator to enable direct usage with std::cout
+  friend std::ostream &operator<<(std::ostream &os, const Matrix<T> &matrix) {
+    for (size_t i = 0; i < matrix.rows; ++i) {
+      for (size_t j = 0; j < matrix.cols; ++j) {
+        os << matrix.data[i * matrix.cols + j] << "\t";
+      }
+      os << "\n";
+    }
+    return os;
+  }
+
+  void print() const {
+    for (size_t i = 0; i < rows; ++i) {
+      for (size_t j = 0; j < cols; ++j) {
+        std::cout << (*this)(i, j) << "\t";
+      }
+      std::cout << "\n";
     }
   }
-
-  fclose(myfile);
-  return m;
-}
-
-void print_matrix(matrix_struct *matrix_to_print) {
-  for (unsigned int i = 0; i < matrix_to_print->rows; i++) {
-    for (unsigned int j = 0; j < matrix_to_print->cols; j++) {
-      printf("%lf\t", matrix_to_print->mat_data[i][j]);
-    }
-    printf("\n");
-  }
-}
-
-void free_matrix(matrix_struct *matrix_to_free) {
-  for (unsigned int i = 0; i < matrix_to_free->rows; i++) {
-    free(matrix_to_free->mat_data[i]);
-  }
-  free(matrix_to_free->mat_data);
-  free(matrix_to_free);
-}
+};

@@ -21,3 +21,4 @@ shared
 naive
 avx
 data/*.txt
+*.txt
