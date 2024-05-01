@@ -82,6 +82,9 @@ public:
 
   T *operator[](size_t row) { return &data[row * cols]; }
 
+  // get a pointer to the beginning of a matrix
+  T *begin() { return &data[0]; }
+
   const T *operator[](size_t row) const { return &data[row * cols]; }
 
   // Overload the << operator to enable direct usage with std::cout

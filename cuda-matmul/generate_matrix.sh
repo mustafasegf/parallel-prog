@@ -9,6 +9,9 @@ MATRIX_SIZES=(
 	512
 	1024
 	2048
+  # 4096
+  # 8192
+  # 16384
 )
 for SZ in "${MATRIX_SIZES[@]}"; do
 	# FILE="data/mat_${SZ}x1.txt"
