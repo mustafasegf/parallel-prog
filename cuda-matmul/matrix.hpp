@@ -1,23 +1,8 @@
-#include <fstream>
-#include <iostream>
-#include <sstream>
-#include <stdexcept>
-#include <vector>
+#ifndef MATRIX_HPP
+#define MATRIX_HPP
+#include "platform.h"
 
-#if defined(__x86_64__) || defined(_M_X64)
-#include <xmmintrin.h>
-#else
-#include <cstdlib>
-static inline void *_emulate_mm_malloc(size_t size, size_t align) {
-  void *ptr = nullptr;
-  if (posix_memalign(&ptr, align, size) != 0) {
-    throw std::bad_alloc();
-  }
-  return ptr;
-}
-#define _mm_malloc _emulate_mm_malloc
-#define _mm_free free
-#endif 
+#pragma once
 
 template <typename T> class AlignedAllocator {
 public:
@@ -40,6 +25,14 @@ public:
   }
 
   void deallocate(pointer p, size_type) { _mm_free(p); }
+
+  bool operator==(const AlignedAllocator &) const { 
+    return true; 
+  }
+
+  bool operator!=(const AlignedAllocator &other) const {
+    return !(*this == other);
+  }
 };
 
 template <typename T> class Matrix {
@@ -121,3 +114,5 @@ public:
     }
   }
 };
+
+#endif // MATRIX_HPP
