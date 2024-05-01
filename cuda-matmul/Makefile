@@ -15,20 +15,19 @@ TARGETS = cublas naive shared sequential avx
 
 # Source files
 CUBLAS_SRC = cublas.cu
-NAIVE_SRC = naive.cu
-SHARED_SRC = shared.cu
+MATMUL_SRC = matmul.cu
 SEQUENTIAL_SRC = sequential.cpp
 
 all: $(TARGETS)
 
+naive: $(MATMUL_SRC)
+	$(NVCC) $(NVCCFLAGS) $(MATMUL_SRC) -o $@ 
+
+shared: $(MATMUL_SRC)
+	$(NVCC) $(NVCCFLAGS) $(MATMUL_SRC) -o $@ -DSHARED
+
 cublas: $(CUBLAS_SRC)
 	$(NVCC) $(NVCCFLAGS) $(CUBLAS_SRC) -o $@ $(NVCCLIBRARIES)
-
-naive: $(NAIVE_SRC)
-	$(NVCC) $(NVCCFLAGS) $(NAIVE_SRC) -o $@
-
-shared: $(SHARED_SRC)
-	$(NVCC) $(NVCCFLAGS) $(SHARED_SRC) -o $@
 
 sequential: $(SEQUENTIAL_SRC) $(CLIBRARIES)
 	$(CC) $(CFLAGS) $(SEQUENTIAL_SRC) -o $@ $(CLIBRARIES) -DTILING

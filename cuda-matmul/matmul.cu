@@ -24,6 +24,41 @@ __global__ void matrixMulKernel(const int32_t *matrix1, const int32_t *matrix2,
   }
 }
 
+#define TILE_WIDTH 64
+
+__global__ void matrixMulSharedKernel(const int32_t *matrix1,
+                                      const int32_t *matrix2, int32_t *answer,
+                                      int32_t rows1, int32_t cols1,
+                                      int32_t cols2) {
+
+  __shared__ int32_t shared_matrix1[TILE_WIDTH][TILE_WIDTH];
+  __shared__ int32_t shared_matrix2[TILE_WIDTH][TILE_WIDTH];
+
+  int32_t row = blockIdx.y * blockDim.y + threadIdx.y;
+  int32_t col = blockIdx.x * blockDim.x + threadIdx.x;
+
+  int32_t sum = 0;
+
+  shared_matrix1[threadIdx.y][threadIdx.x] = 0;
+  shared_matrix2[threadIdx.y][threadIdx.x] = 0;
+
+  if (row < rows1 && col < cols2) {
+    for (int32_t i = 0; i < cols1; i += TILE_WIDTH) {
+      shared_matrix1[threadIdx.y][threadIdx.x] =
+          matrix1[row * cols1 + i + threadIdx.x];
+      shared_matrix2[threadIdx.y][threadIdx.x] =
+          matrix2[(i + threadIdx.y) * cols2 + col];
+      __syncthreads();
+
+      for (int32_t j = 0; j < TILE_WIDTH; j++) {
+        sum += shared_matrix1[threadIdx.y][j] * shared_matrix2[j][threadIdx.x];
+      }
+      __syncthreads();
+    }
+    answer[row * cols2 + col] = sum;
+  }
+}
+
 int main(int argc, char *argv[]) {
   if (argc != 3) {
     std::cerr << "Usage: " << argv[0] << " <matrix file> <matrix file>"
@@ -79,9 +114,17 @@ int main(int argc, char *argv[]) {
 
     // start calculation
     // auto start_compute = std::chrono::high_resolution_clock::now();
+
+#ifdef SHARED
+    matrixMulSharedKernel<<<numBlocks, threadsPerBlock>>>(
+        device_1, device_2, device_answer, matrix1.rows, matrix1.cols,
+        matrix2.cols);
+#else
     matrixMulKernel<<<numBlocks, threadsPerBlock>>>(device_1, device_2,
                                                     device_answer, matrix1.rows,
                                                     matrix1.cols, matrix2.cols);
+
+#endif
 
     // auto end_compute = std::chrono::high_resolution_clock::now();
     // std::chrono::duration<double, std::micro> duration_compute =
