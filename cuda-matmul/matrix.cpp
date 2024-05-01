@@ -30,9 +30,8 @@ public:
 
 template <typename T> class Matrix {
 private:
-  std::vector<T, AlignedAllocator<T>> data;
-
 public:
+  std::vector<T, AlignedAllocator<T>> data;
   size_t rows, cols;
   Matrix(size_t rows, size_t cols)
       : data(rows * cols, 0, AlignedAllocator<T>()), rows(rows), cols(cols) {}
@@ -84,19 +83,6 @@ public:
   T *operator[](size_t row) { return &data[row * cols]; }
 
   const T *operator[](size_t row) const { return &data[row * cols]; }
-
-  Matrix<T> &operator+=(const Matrix<T> &rhs) {
-    if (this->rows != rhs.rows || this->cols != rhs.cols) {
-      throw std::runtime_error(
-          "Error: Matrices dimensions mismatch for addition.");
-    }
-    for (size_t i = 0; i < rows; ++i) {
-      for (size_t j = 0; j < cols; ++j) {
-        (*this)[i][j] += rhs[i][j];
-      }
-    }
-    return *this;
-  }
 
   // Overload the << operator to enable direct usage with std::cout
   friend std::ostream &operator<<(std::ostream &os, const Matrix<T> &matrix) {

@@ -3,8 +3,8 @@ NVCC = nvcc
 CC = g++
 
 # Compiler flags
-NVCCFLAGS = -std=c++11 -O2 -pedantic -Wall -Wextra -Wconversion
-CFLAGS = -std=c++11 -O2 -pedantic -Wall -Wextra -Wconversion
+NVCCFLAGS = -std=c++11 -O3 
+CFLAGS = -std=c++11 -O3 -pedantic -Wall -Wextra -Wconversion -funroll-loops -ffast-math -march=native -mavx512dq
 
 # Libraries
 NVCCLIBRARIES = -lcublas
@@ -18,7 +18,6 @@ CUBLAS_SRC = cublas.cu
 NAIVE_SRC = naive.cu
 SHARED_SRC = shared.cu
 SEQUENTIAL_SRC = sequential.cpp
-AVX_SRC = avx.cpp
 
 all: $(TARGETS)
 
@@ -32,10 +31,10 @@ shared: $(SHARED_SRC)
 	$(NVCC) $(NVCCFLAGS) $(SHARED_SRC) -o $@
 
 sequential: $(SEQUENTIAL_SRC) $(CLIBRARIES)
-	$(CC) $(CFLAGS) $(SEQUENTIAL_SRC) -o $@ $(CLIBRARIES)
+	$(CC) $(CFLAGS) $(SEQUENTIAL_SRC) -o $@ $(CLIBRARIES) -DTILING
 
-avx: $(AVX_SRC) $(CLIBRARIES)
-	$(CC) $(CFLAGS) $(AVX_SRC) -o $@ $(CLIBRARIES)  -mavx512f
+avx: $(SEQUENTIAL_SRC) $(CLIBRARIES)
+	$(CC) $(CFLAGS) $(SEQUENTIAL_SRC) -o $@ $(CLIBRARIES) -DAVX  -mavx512dq -mavx512vl -mavx512bw -mavx512f
 
 clean:
 	rm -f $(TARGETS)

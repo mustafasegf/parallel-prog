@@ -41,7 +41,6 @@ for SZ in "${MATRIX_SIZES[@]}"; do
 	# echo "" | tee -a time_summary.txt
 done
 
-
 echo "* * * * * * * avx"
 for SZ in "${MATRIX_SIZES[@]}"; do
 	OUTPUT=$(./avx "data/mat_${SZ}x${SZ}.txt" "data/mat_${SZ}x${SZ}b.txt")
