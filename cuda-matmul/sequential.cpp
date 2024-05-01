@@ -1,9 +1,13 @@
-#include "matrix.cpp"
 #include <chrono>
+
+#if defined(__x86_64__) || defined(_M_X64)
 #include <immintrin.h>
+#endif 
+
 #include <iostream>
 #include <numeric>
 #include <stdint.h>
+#include "matrix.hpp"
 
 using data_type = double;
 
