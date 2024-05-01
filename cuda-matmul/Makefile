@@ -26,11 +26,11 @@ naive: $(MATMUL_SRC)
 shared: $(MATMUL_SRC)
 	$(NVCC) $(NVCCFLAGS) $(MATMUL_SRC) -o $@ -DSHARED
 
-cublas: $(CUBLAS_SRC)
-	$(NVCC) $(NVCCFLAGS) $(CUBLAS_SRC) -o $@ $(NVCCLIBRARIES)
+cublas: $(MATMUL_SRC)
+	$(NVCC) $(NVCCFLAGS) $(MATMUL_SRC) -o $@ -lcublas -DCUBLAS
 
 sequential: $(SEQUENTIAL_SRC) $(CLIBRARIES)
-	$(CC) $(CFLAGS) $(SEQUENTIAL_SRC) -o $@ $(CLIBRARIES) -DTILING
+	$(CC) $(CFLAGS) $(SEQUENTIAL_SRC) -o $@ $(CLIBRARIES)
 
 avx: $(SEQUENTIAL_SRC) $(CLIBRARIES)
 	$(CC) $(CFLAGS) $(SEQUENTIAL_SRC) -o $@ $(CLIBRARIES) -DAVX  -mavx512dq -mavx512vl -mavx512bw -mavx512f

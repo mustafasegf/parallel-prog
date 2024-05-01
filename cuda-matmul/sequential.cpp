@@ -5,6 +5,8 @@
 #include <numeric>
 #include <stdint.h>
 
+using data_type = double;
+
 int main(int argc, char *argv[]) {
   if (argc != 3) {
     std::cerr << "Usage: " << argv[0] << " <matrix file> <matrix file>"
@@ -13,19 +15,19 @@ int main(int argc, char *argv[]) {
   }
 
   try {
-    Matrix<int32_t> matrix1(argv[1]);
-    Matrix<int32_t> matrix2(argv[2]);
+    Matrix<data_type> matrix1(argv[1]);
+    Matrix<data_type> matrix2(argv[2]);
 
-    Matrix<int32_t> answer(matrix1.rows, matrix2.cols);
+    Matrix<data_type> answer(matrix1.rows, matrix2.cols);
 
     auto start = std::chrono::high_resolution_clock::now();
 
-#if defined(FAST)
-    // fast
+#if defined(SLOW)
+    // slow
     for (size_t i = 0; i < matrix1.rows; i++) {
-      for (size_t k = 0; k < matrix1.cols; k++) {
-        answer(i, k) = 0;
-        for (size_t j = 0; j < matrix2.cols; j++) {
+      for (size_t j = 0; j < matrix2.cols; j++) {
+        answer(i, j) = 0;
+        for (size_t k = 0; k < matrix1.cols; k++) {
           answer(i, j) += matrix1(i, k) * matrix2(k, j);
         }
       }
@@ -52,30 +54,32 @@ int main(int argc, char *argv[]) {
 
 #elif defined(AVX)
     // avx512
-    const size_t blockSize = 512 / sizeof(matrix1[0][0]);
-    for (size_t i = 0; i < matrix1.rows; i++) {
+    const size_t blockSize = 512 / sizeof(data_type);
+    for (size_t i = 0; i < matrix1.rows; ++i) {
       for (size_t j = 0; j < matrix2.cols; j += blockSize) {
-        __m512i sum_vector = _mm512_setzero_si512();
+        __m512d sum_vector = _mm512_setzero_pd();
 
-        for (size_t k = 0; k < matrix1.cols; k++) {
-          __m512i mat1_vec = _mm512_set1_epi32(matrix1(i, k));
+        for (size_t k = 0; k < matrix1.cols; ++k) {
+          __m512d mat1_vec = _mm512_set1_pd(
+              matrix1(i, k)); // Broadcast matrix1[i][k] to all elements
+          __m512d mat2_vec = _mm512_load_pd(
+              &matrix2.data[k * matrix2.cols +
+                            j]); // Load 8 elements from matrix2[k][j...j+7]
 
-          __m512i mat2_vec = _mm512_load_si512((__m512i *)&matrix2(k, j));
-          __m512i product_vec = _mm512_mullo_epi32(mat1_vec, mat2_vec);
-          sum_vector = _mm512_add_epi32(sum_vector, product_vec);
+          sum_vector = _mm512_fmadd_pd(mat1_vec, mat2_vec, sum_vector);
         }
 
         // Store the results back to the answer matrix
-        _mm512_store_si512((__m512i *)&answer(i, j), sum_vector);
+        _mm512_store_pd(&answer.data[i * answer.cols + j], sum_vector);
       }
     }
 
 #else
-    // slow
+    // fast
     for (size_t i = 0; i < matrix1.rows; i++) {
-      for (size_t j = 0; j < matrix2.cols; j++) {
-        answer(i, j) = 0;
-        for (size_t k = 0; k < matrix1.cols; k++) {
+      for (size_t k = 0; k < matrix1.cols; k++) {
+        answer(i, k) = 0;
+        for (size_t j = 0; j < matrix2.cols; j++) {
           answer(i, j) += matrix1(i, k) * matrix2(k, j);
         }
       }
