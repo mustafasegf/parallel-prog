@@ -31,12 +31,12 @@ __global__ void kernelStatic(int *a) {
 }
 
 int main(int argc, char *argv[]) {
-  int blockDimX = 5; // Default block dimension along x
+  int blockDimX = 4; // Default block dimension along x
   if (argc > 1) {
     blockDimX = atoi(argv[1]);
   }
 
-  int numBlocks = 3; // Number of blocks in the grid
+  int numBlocks = 2; // Number of blocks in the grid
   if (argc > 2) {
     numBlocks = atoi(argv[2]);
   }
