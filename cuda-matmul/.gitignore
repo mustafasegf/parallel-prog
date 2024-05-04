@@ -22,3 +22,6 @@ naive
 avx
 data/*.txt
 *.txt
+!CMakeLists.txt
+build/*
+!build/.gitkeep
