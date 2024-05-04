@@ -4,17 +4,16 @@ CC = g++
 
 # Compiler flags
 NVCCFLAGS = -std=c++11 -O3 
-CFLAGS = -std=c++11 -O3 -pedantic -Wall -Wextra -Wconversion -funroll-loops -ffast-math -march=native -mavx512dq
+CFLAGS = -std=c++11 -O3 -pedantic -Wall -Wextra -Wconversion -funroll-loops -ffast-math -march=native
 
 # Libraries
 NVCCLIBRARIES = -lcublas
-CLIBRARIES = matrix.cpp
+CLIBRARIES = 
 
 # Build targets
-TARGETS = cublas naive shared sequential avx
+TARGETS = cublas naive shared sequential tiling avx
 
 # Source files
-CUBLAS_SRC = cublas.cu
 MATMUL_SRC = matmul.cu
 SEQUENTIAL_SRC = sequential.cpp
 
@@ -31,6 +30,9 @@ cublas: $(MATMUL_SRC)
 
 sequential: $(SEQUENTIAL_SRC) $(CLIBRARIES)
 	$(CC) $(CFLAGS) $(SEQUENTIAL_SRC) -o $@ $(CLIBRARIES)
+
+tiling: $(SEQUENTIAL_SRC) $(CLIBRARIES)
+	$(CC) $(CFLAGS) $(SEQUENTIAL_SRC) -o $@ $(CLIBRARIES) -DTILING
 
 avx: $(SEQUENTIAL_SRC) $(CLIBRARIES)
 	$(CC) $(CFLAGS) $(SEQUENTIAL_SRC) -o $@ $(CLIBRARIES) -DAVX  -mavx512dq -mavx512vl -mavx512bw -mavx512f

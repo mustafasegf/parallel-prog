@@ -20,6 +20,8 @@ sequential
 shared
 naive
 avx
+tiling
+
 data/*.txt
 *.txt
 !CMakeLists.txt

@@ -1,7 +1,9 @@
 #include <chrono>
+#include <cstdint>
+#include <iomanip>
+#include <ios>
 #include <iostream>
 #include <numeric>
-#include <cstdint>
 
 #include "matrix.hpp"
 
@@ -22,8 +24,10 @@ int main(int argc, char *argv[]) {
 
     auto start = std::chrono::high_resolution_clock::now();
 
+    std::string name = "";
+
 #if defined(SLOW)
-    // slow
+    name = "slow";
     for (size_t i = 0; i < matrix1.rows; i++) {
       for (size_t j = 0; j < matrix2.cols; j++) {
         answer(i, j) = 0;
@@ -34,7 +38,7 @@ int main(int argc, char *argv[]) {
     }
 
 #elif defined(TILING)
-    // loop tiling
+    name = "tiling";
     size_t blockSize = 64;
     for (size_t i0 = 0; i0 < matrix1.rows; i0 += blockSize) {
       for (size_t j0 = 0; j0 < matrix2.cols; j0 += blockSize) {
@@ -53,7 +57,7 @@ int main(int argc, char *argv[]) {
     }
 
 #elif defined(AVX)
-    // avx512
+    name = "avx512";
     const size_t blockSize = 512 / sizeof(data_type);
     for (size_t i = 0; i < matrix1.rows; ++i) {
       for (size_t j = 0; j < matrix2.cols; j += blockSize) {
@@ -75,7 +79,7 @@ int main(int argc, char *argv[]) {
     }
 
 #else
-    // fast
+    name = "loop";
     for (size_t i = 0; i < matrix1.rows; i++) {
       for (size_t k = 0; k < matrix1.cols; k++) {
         answer(i, k) = 0;
@@ -86,14 +90,15 @@ int main(int argc, char *argv[]) {
     }
 
 #endif
-
     auto end = std::chrono::high_resolution_clock::now();
 
     std::chrono::duration<double, std::micro> duration = end - start;
 
-    std::cout << "size: " << matrix1.rows << "x" << matrix2.cols
-              << " compute us: " << duration.count() << " comm us: 0"
-              << std::endl;
+    auto size =
+        std::to_string(matrix1.rows) + "x" + std::to_string(matrix2.cols);
+
+    std::cout << std::fixed << std::setprecision(0) << name << " " << std::left
+              << std::setw(11) << size << " " << duration.count() << std::endl;
 
     // std::cout << answer << std::endl;
 

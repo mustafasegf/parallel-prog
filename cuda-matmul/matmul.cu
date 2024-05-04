@@ -4,6 +4,7 @@
 #include <cuda_device_runtime_api.h>
 #include <cuda_runtime.h>
 #include <immintrin.h>
+#include <iomanip>
 #include <iostream>
 #include <numeric>
 #include <stdint.h>
@@ -63,7 +64,7 @@ __global__ void matrixMulSharedKernel(const data_type *matrix1,
 }
 
 int main(int argc, char *argv[]) {
-  if (argc != 3) {
+  if (argc < 3) {
     std::cerr << "Usage: " << argv[0] << " <matrix file> <matrix file>"
               << std::endl;
     return 1;
@@ -106,23 +107,36 @@ int main(int argc, char *argv[]) {
     //     end_copy - start_copy;
     // std::cout << "copy us: " << duration_copy.count() << std::endl;
 
-    dim3 threadsPerBlock(32, 32);
-    dim3 numBlocks((matrix2.cols + threadsPerBlock.x - 1) / threadsPerBlock.x,
-                   (matrix1.rows + threadsPerBlock.y - 1) / threadsPerBlock.y);
+    auto block = 32;
+    if (argc > 4) {
+      block = std::stoi(argv[4]);
+      if (block == 0) {
+        block = 32;
+      }
+    }
 
-    // std::cout << "numBlocks: " << numBlocks.x << "x" << numBlocks.y
-    //           << std::endl;
-    // std::cout << "threadsPerBlock: " << threadsPerBlock.x << "x"
-    //           << threadsPerBlock.y << std::endl;
+    auto grid = (matrix1.cols + block - 1) / block;
+    if (argc > 3) {
+      grid = std::stoi(argv[3]);
+      if (grid == 0) {
+        grid = 32;
+      }
+    }
+
+    dim3 blockSize(block, block);
+    dim3 gridSize(grid, grid);
 
     // start calculation
     // auto start_compute = std::chrono::high_resolution_clock::now();
 
 #ifdef SHARED
-    matrixMulSharedKernel<<<numBlocks, threadsPerBlock>>>(
-        device_1, device_2, device_answer, matrix1.rows, matrix1.cols,
-        matrix2.cols);
+    auto name = "shared";
+    matrixMulSharedKernel<<<gridSize, blockSize>>>(device_1, device_2,
+                                                   device_answer, matrix1.rows,
+                                                   matrix1.cols, matrix2.cols);
+
 #elif defined CUBLAS
+    auto name = "cublas";
 
     cublasHandle_t cublasH;
     cublasCreate(&cublasH);
@@ -133,9 +147,10 @@ int main(int argc, char *argv[]) {
                 matrix1.cols, &alpha, device_1, matrix1.cols, device_2,
                 matrix2.rows, &beta, device_answer, matrix1.rows);
 #else
-    matrixMulKernel<<<numBlocks, threadsPerBlock>>>(device_1, device_2,
-                                                    device_answer, matrix1.rows,
-                                                    matrix1.cols, matrix2.cols);
+    auto name = "naive";
+    matrixMulKernel<<<gridSize, blockSize>>>(device_1, device_2, device_answer,
+                                             matrix1.rows, matrix1.cols,
+                                             matrix2.cols);
 
 #endif
 
@@ -159,9 +174,13 @@ int main(int argc, char *argv[]) {
 
     std::chrono::duration<double, std::micro> duration = end - start;
 
-    std::cout << "size: " << matrix1.rows << "x" << matrix2.cols
-              << " compute us: " << duration.count() << " comm us: 0"
-              << std::endl;
+    auto size =
+        std::to_string(matrix1.rows) + "x" + std::to_string(matrix2.cols);
+
+    std::cout << std::fixed << std::setprecision(0) << name << " " << std::left
+              << std::setw(11) << size << " "
+              << "grid: " << std::setw(2) << grid << " block: " << std::setw(5)
+              << block << " " << duration.count() << std::endl;
 
     // std::cout << answer << std::endl;
 
