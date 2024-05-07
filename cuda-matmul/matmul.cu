@@ -11,8 +11,6 @@
 #include <stdio.h>
 
 using data_type = double;
-// constexpr int32_t TILE_WIDTH = 1024 / sizeof(data_type);
-constexpr int32_t TILE_WIDTH = 32;
 
 __global__ void matrixMulKernel(const data_type *matrix1,
                                 const data_type *matrix2, data_type *answer,
@@ -30,6 +28,7 @@ __global__ void matrixMulKernel(const data_type *matrix1,
   }
 }
 
+constexpr int32_t TILE_WIDTH = 32;
 __global__ void matrixMulSharedKernel(const data_type *matrix1,
                                       const data_type *matrix2,
                                       data_type *answer, int32_t rows1,
@@ -107,19 +106,19 @@ int main(int argc, char *argv[]) {
     //     end_copy - start_copy;
     // std::cout << "copy us: " << duration_copy.count() << std::endl;
 
+    auto grid = 32;
+    if (argc > 3) {
+      grid = std::stoi(argv[3]);
+      if (grid == 0) {
+        grid = 32;
+      }
+    }
+
     auto block = 32;
     if (argc > 4) {
       block = std::stoi(argv[4]);
       if (block == 0) {
         block = 32;
-      }
-    }
-
-    auto grid = (matrix1.cols + block - 1) / block;
-    if (argc > 3) {
-      grid = std::stoi(argv[3]);
-      if (grid == 0) {
-        grid = 32;
       }
     }
 
