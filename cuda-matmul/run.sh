@@ -1,12 +1,7 @@
 #!/usr/bin/env bash
 ./generate_matrix.sh
 
-echo "compile..."
-echo
 make -j
-echo
-echo "calculate..."
-echo
 
 MATRIX_SIZES=(
 	128
@@ -14,13 +9,29 @@ MATRIX_SIZES=(
 	512
 	1024
 	2048
-	# 4096
-	# 8192
+	4096
+	8192
 	# 16384
 )
 
-# GRID=
+GRID_BLOCK=(
+	"1 1"
+	"2 2"
+	"4 4"
+	"8 8"
+	"16 16"
+	"32 32"
+	"64 32"
+	"128 32"
+  "256 32"
+  # "512 32"
+)
 
+# if 1nd is empty, skip gpu table
+if [ -z "$1" ]; then
+	echo "skip gpu table"
+	GRID_BLOCK=("0 0")
+fi
 rm -f timecpu_old.txt
 rm -f timegpu_old.txt
 # rm -f table_old.csv
@@ -40,6 +51,8 @@ if [ -z "$2" ]; then
 	for SZ in "${MATRIX_SIZES[@]}"; do
 		./sequential "data/mat_${SZ}x${SZ}.txt" "data/mat_${SZ}x${SZ}b.txt" | tee -a timecpu.txt
 	done
+else
+	echo "skip cpu"
 fi
 
 if [ -z "$1" ]; then
@@ -48,6 +61,8 @@ if [ -z "$1" ]; then
 	for SZ in "${MATRIX_SIZES[@]}"; do
 		./tiling "data/mat_${SZ}x${SZ}.txt" "data/mat_${SZ}x${SZ}b.txt" | tee -a timecpu.txt
 	done
+else
+	echo "skip cpu tiling"
 fi
 
 if [ -z "$1" ]; then
@@ -59,22 +74,42 @@ if [ -z "$1" ]; then
 			./avx512 "data/mat_${SZ}x${SZ}.txt" "data/mat_${SZ}x${SZ}b.txt" | tee -a timecpu.txt
 		done
 	fi
+else
+	echo "skip cpu avx512"
 fi
 
 echo
 echo "* * * * * * * naive"
-for SZ in "${MATRIX_SIZES[@]}"; do
-	./naive "data/mat_${SZ}x${SZ}.txt" "data/mat_${SZ}x${SZ}b.txt" | tee -a timegpu.txt
+for GB in "${GRID_BLOCK[@]}"; do
+	GRID=${GB% *}
+	BLOCK=${GB#* }
+	echo
+	echo "GRID: $GRID, BLOCK: $BLOCK"
+	for SZ in "${MATRIX_SIZES[@]}"; do
+		./naive "data/mat_${SZ}x${SZ}.txt" "data/mat_${SZ}x${SZ}b.txt" "$GRID" "$BLOCK" | tee -a timegpu.txt
+	done
 done
 
 echo
 echo "* * * * * * * shared"
-for SZ in "${MATRIX_SIZES[@]}"; do
-	./shared "data/mat_${SZ}x${SZ}.txt" "data/mat_${SZ}x${SZ}b.txt" | tee -a timegpu.txt
+for GB in "${GRID_BLOCK[@]}"; do
+	GRID=${GB% *}
+	BLOCK=${GB#* }
+	echo
+	echo "GRID: $GRID, BLOCK: $BLOCK"
+	for SZ in "${MATRIX_SIZES[@]}"; do
+		./shared "data/mat_${SZ}x${SZ}.txt" "data/mat_${SZ}x${SZ}b.txt" "$GRID" "$BLOCK" | tee -a timegpu.txt
+	done
 done
-echo
 
+echo
 echo "* * * * * * * cublas"
-for SZ in "${MATRIX_SIZES[@]}"; do
-	./cublas "data/mat_${SZ}x${SZ}.txt" "data/mat_${SZ}x${SZ}b.txt" | tee -a timegpu.txt
+for GB in "${GRID_BLOCK[@]}"; do
+	GRID=${GB% *}
+	BLOCK=${GB#* }
+	echo
+	echo "GRID: $GRID, BLOCK: $BLOCK"
+	for SZ in "${MATRIX_SIZES[@]}"; do
+		./cublas "data/mat_${SZ}x${SZ}.txt" "data/mat_${SZ}x${SZ}b.txt" "$GRID" "$BLOCK" | tee -a timegpu.txt
+	done
 done
