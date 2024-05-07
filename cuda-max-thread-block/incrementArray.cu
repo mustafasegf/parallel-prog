@@ -3,12 +3,12 @@
 #include <iostream>
 #include <stdio.h>
 
-void incrementArrayOnHost(float *a, long long N) {
-  for (long long i = 0; i < N; i++) {
+void incrementArrayOnHost(float *a, int64_t N) {
+  for (size_t i = 0; i < N; i++) {
     a[i] = a[i] + 1.f;
   }
 }
-__global__ void incrementArrayOnDevice(float *a, long long N) {
+__global__ void incrementArrayOnDevice(float *a, int64_t N) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
   if (idx < N) {
     a[idx] = a[idx] + 1.f;
@@ -16,61 +16,56 @@ __global__ void incrementArrayOnDevice(float *a, long long N) {
 }
 
 int main(int argc, char **argv) {
-  float *a_h, *b_h; // pointers to host memory
-  float *a_d;       // pointer to device memory
-  long long i, N = 10;
-
+  int64_t gridDim = 3; // Number of blocks in the grid
   if (argc > 1) {
-    N = atoll(argv[1]);
+    gridDim = atoll(argv[1]);
   }
 
-  size_t size = N * sizeof(float);
-  // allocate arrays on host
-  a_h = (float *)malloc(size);
-  b_h = (float *)malloc(size);
-  // allocate array on device
-  cudaMalloc((void **)&a_d, size);
-  // initialization of host data
-  for (i = 0; i < N; i++) {
-    a_h[i] = (float)i;
-  }
-  // copy data from host to device
-  cudaMemcpy(a_d, a_h, sizeof(float) * N, cudaMemcpyHostToDevice);
-  // do calculation on device:
-  // Part 1 of 2. Compute execution configuration
-  long long blockSize = 4;
+  int64_t blockDim = 5; // Number of threads in a block
   if (argc > 2) {
-    blockSize = atoll(argv[2]);
+    blockDim = atoll(argv[2]);
   }
 
-  // do calculation on host
-  incrementArrayOnHost(a_h, N);
+  float *a_host, *b_host; // pointers to host memory
+  float *a_device;        // pointer to device memory
 
-  long long nBlocks = N / blockSize + (N % blockSize == 0 ? 0 : 1);
+  int64_t N = gridDim * blockDim;
+  int64_t size = N * sizeof(float);
 
-  dim3 dimBlock(nBlocks);
+  dim3 grid(gridDim);
+  dim3 blocks(blockDim);
 
-  std::cout << "nBlocks: " << nBlocks << std::endl;
-  std::cout << "x: " << dimBlock.x << " y: " << dimBlock.y
-            << " z: " << dimBlock.z << std::endl;
+  a_host = (float *)malloc(size);
+  b_host = (float *)malloc(size);
+  cudaMalloc((void **)&a_device, size);
 
-  // Part 2 of 2. Call incrementArrayOnDevice kernel
-  incrementArrayOnDevice<<<dimBlock, blockSize>>>(a_d, N);
-  // Retrieve result from device and store in b_h
-  cudaMemcpy(b_h, a_d, sizeof(float) * N, cudaMemcpyDeviceToHost);
-  // check results
-  for (i = 0; i < N; i++) {
-    assert(a_h[i] == b_h[i]);
+  for (size_t i = 0; i < N; i++) {
+    a_host[i] = (float)i;
+  }
+  cudaMemcpy(a_device, a_host, sizeof(float) * N, cudaMemcpyHostToDevice);
+
+  incrementArrayOnHost(a_host, N);
+
+  std::cout << "grid x: " << grid.x << " y: " << grid.y << " z: " << grid.z
+            << std::endl;
+  std::cout << "block x: " << blocks.x << " y: " << blocks.y
+            << " z: " << blocks.z << std::endl;
+
+  incrementArrayOnDevice<<<grid, blocks>>>(a_device, N);
+  cudaMemcpy(b_host, a_device, sizeof(float) * N, cudaMemcpyDeviceToHost);
+
+  for (size_t i = 0; i < N; i++) {
+    assert(a_host[i] == b_host[i]);
   }
 
   // std::cout << "Results are correct!" << std::endl;
 
-  // for (i = 0; i < N; i++) {
-  //   std::cout << b_h[i] << " ";
+  // for (size_t i = 0; i < N; i++) {
+  //   std::cout << b_host[i] << " ";
   // }
 
   // cleanup
-  free(a_h);
-  free(b_h);
-  cudaFree(a_d);
+  free(a_host);
+  free(b_host);
+  cudaFree(a_device);
 }
