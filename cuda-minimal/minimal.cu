@@ -26,14 +26,14 @@ __global__ void kernelStatic(int *a) {
 }
 
 int main(int argc, char *argv[]) {
-  int blockDim = 5; // Number of threads in a block
+  int gridDim = 3; // Number of blocks in the grid
   if (argc > 1) {
-    blockDim = atoi(argv[1]);
+    gridDim = atoi(argv[1]);
   }
 
-  int gridDim = 3; // Number of blocks in the grid
+  int blockDim = 5; // Number of threads in a block
   if (argc > 2) {
-    gridDim = atoi(argv[2]);
+    blockDim = atoi(argv[2]);
   }
 
   int *a_device, *a_host;
