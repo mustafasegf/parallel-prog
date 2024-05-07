@@ -10,7 +10,7 @@ MATRIX_SIZES=(
 	1024
 	2048
 	4096
-	# 8192
+	8192
 	# 16384
 )
 for SZ in "${MATRIX_SIZES[@]}"; do
