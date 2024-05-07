@@ -23,8 +23,8 @@ GRID_BLOCK=(
 	"32 32"
 	"64 32"
 	"128 32"
-  "256 32"
-  # "512 32"
+	"256 32"
+	# "512 32"
 )
 
 # if 1nd is empty, skip gpu table
@@ -104,12 +104,6 @@ done
 
 echo
 echo "* * * * * * * cublas"
-for GB in "${GRID_BLOCK[@]}"; do
-	GRID=${GB% *}
-	BLOCK=${GB#* }
-	echo
-	echo "GRID: $GRID, BLOCK: $BLOCK"
-	for SZ in "${MATRIX_SIZES[@]}"; do
-		./cublas "data/mat_${SZ}x${SZ}.txt" "data/mat_${SZ}x${SZ}b.txt" "$GRID" "$BLOCK" | tee -a timegpu.txt
-	done
+for SZ in "${MATRIX_SIZES[@]}"; do
+	./cublas "data/mat_${SZ}x${SZ}.txt" "data/mat_${SZ}x${SZ}b.txt" 1 1 | tee -a timegpu.txt
 done
