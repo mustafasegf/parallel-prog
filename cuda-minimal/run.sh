@@ -1,45 +1,21 @@
 #!/usr/bin/env bash
-# make
+make
 
-# GRID=(
-# 	1
-# 	2
-# 	8
-# 	10
-#   16
-# )
-#
-# BLOCK=(
-# 	1
-# 	2
-# 	7
-# 	8
-# 	10
-#   16
-# )
-#
-# for G in "${GRID[@]}"; do
-# 	for B in "${BLOCK[@]}"; do
-# 		echo
-# 		echo "* * * * * grid:$G block:$B"
-# 		./minimal "$G" "$B"
-# 	done
-# done
+echo "* * * * * grid:1 block:1"
+./minimal 1 1
 
-GRID_BLOCK=(
-	"1 1"
-	"2 2"
-	"8 7"
-	"8 8"
-	"16 10"
-)
+echo
+echo "* * * * * grid:2 block:2"
+./minimal 2 2
 
-for i in "${GRID_BLOCK[@]}"; do
-	G=${i% *}
-	B=${i#* }
-	if [ "$i" != "1 1" ]; then
-		echo
-	fi
-	echo "* * * * * grid:$G block:$B"
-	./minimal "$i"
-done
+echo
+echo "* * * * * grid:8 block:7"
+./minimal 8 7
+
+echo
+echo "* * * * * grid:8 block:8"
+./minimal 8 8
+
+echo
+echo "* * * * * grid:16 block:10"
+./minimal 16 10
