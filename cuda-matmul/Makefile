@@ -11,8 +11,12 @@ NVCCLIBRARIES = -lcublas
 CLIBRARIES = 
 
 # Build targets
-TARGETS = cublas naive shared sequential tiling avx
+TARGETS = cublas naive shared sequential tiling
 
+# check if avx512 is supported
+ifneq ($(shell grep -c avx512 /proc/cpuinfo),0)
+TARGETS = cublas naive shared sequential tiling avx512
+endif
 # Source files
 MATMUL_SRC = matmul.cu
 SEQUENTIAL_SRC = sequential.cpp
@@ -34,8 +38,8 @@ sequential: $(SEQUENTIAL_SRC) $(CLIBRARIES)
 tiling: $(SEQUENTIAL_SRC) $(CLIBRARIES)
 	$(CC) $(CFLAGS) $(SEQUENTIAL_SRC) -o $@ $(CLIBRARIES) -DTILING
 
-avx: $(SEQUENTIAL_SRC) $(CLIBRARIES)
-	$(CC) $(CFLAGS) $(SEQUENTIAL_SRC) -o $@ $(CLIBRARIES) -DAVX  -mavx512dq -mavx512vl -mavx512bw -mavx512f
+avx512: $(SEQUENTIAL_SRC) $(CLIBRARIES)
+	$(CC) $(CFLAGS) $(SEQUENTIAL_SRC) -o $@ $(CLIBRARIES) -DAVX512  -mavx512dq -mavx512vl -mavx512bw -mavx512f
 
 clean:
 	rm -f $(TARGETS)

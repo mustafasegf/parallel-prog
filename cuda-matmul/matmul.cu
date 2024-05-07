@@ -177,9 +177,9 @@ int main(int argc, char *argv[]) {
     auto size =
         std::to_string(matrix1.rows) + "x" + std::to_string(matrix2.cols);
 
-    std::cout << std::fixed << std::setprecision(0) << name << " " << std::left
-              << std::setw(11) << size << " "
-              << "grid: " << std::setw(2) << grid << " block: " << std::setw(5)
+    std::cout << std::fixed << std::setprecision(0) << std::left << std::setw(6)
+              << name << " " << std::setw(11) << size << " "
+              << "grid: " << std::setw(3) << grid << " block: " << std::setw(5)
               << block << " " << duration.count() << std::endl;
 
     // std::cout << answer << std::endl;

@@ -19,11 +19,13 @@ cublas
 sequential
 shared
 naive
-avx
+avx512
 tiling
 
 data/*.txt
+
 *.txt
+*.csv
 !CMakeLists.txt
 build/*
 !build/.gitkeep
