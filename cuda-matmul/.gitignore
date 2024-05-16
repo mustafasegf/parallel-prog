@@ -20,6 +20,7 @@ sequential
 shared
 naive
 avx512
+avx2
 tiling
 
 data/*.txt

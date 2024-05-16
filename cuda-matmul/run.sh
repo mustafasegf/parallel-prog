@@ -9,8 +9,8 @@ MATRIX_SIZES=(
 	512
 	1024
 	2048
-	4096
-	8192
+	# 4096
+	# 8192
 	# 16384
 )
 
@@ -21,9 +21,9 @@ GRID_BLOCK=(
 	"8 8"
 	"16 16"
 	"32 32"
-	"64 32"
-	"128 32"
-	"256 32"
+	# "64 32"
+	# "128 32"
+	# "256 32"
 	# "512 32"
 )
 
@@ -63,6 +63,19 @@ if [ -z "$1" ]; then
 	done
 else
 	echo "skip cpu tiling"
+fi
+
+if [ -z "$1" ]; then
+	# check if avx2 is available
+	if grep -q avx2 /proc/cpuinfo; then
+		echo
+		echo "* * * * * * * avx2"
+		for SZ in "${MATRIX_SIZES[@]}"; do
+			./avx2 "data/mat_${SZ}x${SZ}.txt" "data/mat_${SZ}x${SZ}b.txt" | tee -a timecpu.txt
+		done
+	fi
+else
+	echo "skip cpu avx2"
 fi
 
 if [ -z "$1" ]; then

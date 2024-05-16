@@ -1,5 +1,6 @@
 #include <chrono>
 #include <cstdint>
+#include <fstream>
 #include <iomanip>
 #include <ios>
 #include <iostream>
@@ -56,6 +57,28 @@ int main(int argc, char *argv[]) {
       }
     }
 
+#elif defined(AVX2)
+    name = "avx2";
+    const size_t blockSize = 256 / sizeof(data_type);
+    for (size_t i = 0; i < matrix1.rows; ++i) {
+      for (size_t j = 0; j < matrix2.cols; j += blockSize) {
+        __m256d sum_vector = _mm256_setzero_pd();
+
+        for (size_t k = 0; k < matrix1.cols; ++k) {
+          __m256d mat1_vec = _mm256_set1_pd(
+              matrix1(i, k)); // Broadcast matrix1[i][k] to all elements
+          __m256d mat2_vec = _mm256_load_pd(
+              &matrix2.data[k * matrix2.cols +
+                            j]); // Load 4 elements from matrix2[k][j...j+3]
+
+          sum_vector = _mm256_fmadd_pd(mat1_vec, mat2_vec, sum_vector);
+        }
+
+        // Store the results back to the answer matrix
+        _mm256_store_pd(&answer.data[i * answer.cols + j], sum_vector);
+      }
+    }
+
 #elif defined(AVX512)
     name = "avx512";
     const size_t blockSize = 512 / sizeof(data_type);
@@ -100,6 +123,19 @@ int main(int argc, char *argv[]) {
     std::cout << std::fixed << std::setprecision(0) << std::left << std::setw(6)
               << name << " " << std::setw(11) << size << " " << duration.count()
               << std::endl;
+
+    // save the answer to a file if file not exist
+
+    auto fileName = std::string(argv[1]);
+    size_t pos = fileName.rfind(".txt");
+    if (pos == std::string::npos) {
+      pos = fileName.length(); // Append at the end if ".txt" is not found
+    }
+    fileName.insert(pos, "_ans");
+
+    if (!std::ifstream(fileName)) {
+      answer.save(fileName);
+    }
 
     // std::cout << answer << std::endl;
 

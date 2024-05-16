@@ -1,6 +1,7 @@
 #ifndef MATRIX_HPP
 #define MATRIX_HPP
 #include "platform.h"
+#include <fstream>
 
 #pragma once
 
@@ -26,9 +27,7 @@ public:
 
   void deallocate(pointer p, size_type) { _mm_free(p); }
 
-  bool operator==(const AlignedAllocator &) const { 
-    return true; 
-  }
+  bool operator==(const AlignedAllocator &) const { return true; }
 
   bool operator!=(const AlignedAllocator &other) const {
     return !(*this == other);
@@ -79,6 +78,23 @@ public:
     cols = numCols;
     data = std::vector<T, AlignedAllocator<T>>(loadedData.begin(),
                                                loadedData.end());
+  }
+
+  void save(const std::string &filename) const {
+    std::ofstream file(filename);
+    if (!file.is_open()) {
+      throw std::runtime_error(
+          "Error: The file you entered could not be found.");
+    }
+
+    for (size_t i = 0; i < rows; ++i) {
+      for (size_t j = 0; j < cols; ++j) {
+        file << data[i * cols + j] << " ";
+      }
+      file << "\n";
+    }
+
+    file.close();
   }
 
   T &operator()(size_t row, size_t col) { return data[row * cols + col]; }
