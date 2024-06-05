@@ -1,4 +1,5 @@
 #include "matrix.hpp"
+#include <cassert>
 #include <chrono>
 #include <cublas_v2.h>
 #include <cuda_device_runtime_api.h>
@@ -172,6 +173,23 @@ int main(int argc, char *argv[]) {
     auto end = std::chrono::high_resolution_clock::now();
 
     std::chrono::duration<double, std::micro> duration = end - start;
+
+    auto fileName = std::string(argv[1]);
+    size_t pos = fileName.rfind(".txt");
+    if (pos == std::string::npos) {
+      pos = fileName.length(); // Append at the end if ".txt" is not found
+    }
+
+    fileName.insert(pos, "_ans");
+    Matrix<data_type> res(fileName);
+
+    // std::cout << answer << std::endl;
+
+    for (size_t i = 0; i < answer.rows; i++) {
+      for (size_t j = 0; j < answer.cols; j++) {
+        assert(answer(i, j) == res(i, j));
+      }
+    }
 
     auto size =
         std::to_string(matrix1.rows) + "x" + std::to_string(matrix2.cols);
