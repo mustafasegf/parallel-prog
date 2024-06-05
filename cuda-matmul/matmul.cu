@@ -68,40 +68,6 @@ __global__ void gpu_square_matrix_mult(data_type *d_a, data_type *d_b,
   }
 }
 
-// constexpr int32_t TILE_WIDTH = 32;
-// __global__ void matrixMulSharedKernel(const data_type *matrix1,
-//                                       const data_type *matrix2,
-//                                       data_type *answer, int32_t n) {
-//
-//   __shared__ data_type shared_matrix1[TILE_WIDTH][TILE_WIDTH];
-//   __shared__ data_type shared_matrix2[TILE_WIDTH][TILE_WIDTH];
-//
-//   int32_t row = blockIdx.y * blockDim.y + threadIdx.y;
-//   int32_t col = blockIdx.x * blockDim.x + threadIdx.x;
-//
-//   data_type tmp = 0;
-//   int32_t idx;
-//   data_type sum = 0;
-//
-//   shared_matrix1[threadIdx.y][threadIdx.x] = 0;
-//   shared_matrix2[threadIdx.y][threadIdx.x] = 0;
-//   if (row < n && col < n) {
-//     for (int32_t i = 0; i < cols1; i += TILE_WIDTH) {
-//       shared_matrix1[threadIdx.y][threadIdx.x] =
-//           matrix1[row * cols1 + i + threadIdx.x];
-//       shared_matrix2[threadIdx.y][threadIdx.x] =
-//           matrix2[(i + threadIdx.y) * cols2 + col];
-//       __syncthreads();
-//
-//       for (int32_t j = 0; j < TILE_WIDTH; j++) {
-//         sum += shared_matrix1[threadIdx.y][j] * shared_matrix2[j][threadIdx.x];
-//       }
-//       __syncthreads();
-//     }
-//     answer[row * cols2 + col] = sum;
-//   }
-// }
-
 int main(int argc, char *argv[]) {
   if (argc < 3) {
     std::cerr << "Usage: " << argv[0] << " <matrix file> <matrix file>"
@@ -118,21 +84,12 @@ int main(int argc, char *argv[]) {
     auto start = std::chrono::high_resolution_clock::now();
     data_type *device_1, *device_2, *device_answer;
 
-    // auto start_alloc = std::chrono::high_resolution_clock::now();
-    // allocate device memory
-
     cudaMalloc(&device_1, matrix1.rows * matrix1.cols * sizeof(data_type));
     cudaMalloc(&device_2, matrix2.rows * matrix2.cols * sizeof(data_type));
     cudaMalloc(&device_answer, matrix1.rows * matrix2.cols * sizeof(data_type));
 
-    // auto end_alloc = std::chrono::high_resolution_clock::now();
-    // std::chrono::duration<double, std::micro> duration_alloc =
-    //     end_alloc - start_alloc;
-    // std::cout << "alloc us: " << duration_alloc.count() << std::endl;
-
     // copy data to device
 
-    // auto start_copy = std::chrono::high_resolution_clock::now();
     cudaMemcpy(device_1, matrix1.begin(),
                matrix1.rows * matrix1.cols * sizeof(data_type),
                cudaMemcpyHostToDevice);
@@ -140,11 +97,6 @@ int main(int argc, char *argv[]) {
     cudaMemcpy(device_2, matrix2.begin(),
                matrix2.rows * matrix2.cols * sizeof(data_type),
                cudaMemcpyHostToDevice);
-
-    // auto end_copy = std::chrono::high_resolution_clock::now();
-    // std::chrono::duration<double, std::micro> duration_copy =
-    //     end_copy - start_copy;
-    // std::cout << "copy us: " << duration_copy.count() << std::endl;
 
     auto grid = 32;
     if (argc > 3) {
@@ -167,11 +119,9 @@ int main(int argc, char *argv[]) {
     dim3 blockSize(block, block);
 
     // start calculation
-    // auto start_compute = std::chrono::high_resolution_clock::now();
 
 #ifdef SHARED
     auto name = "shared";
-    // matrixMulSharedKernel<<<gridSize, blockSize>>>(device_1, device_2,
     gpu_square_matrix_mult<<<gridSize, blockSize>>>(
         device_1, device_2, device_answer, matrix1.rows);
 
@@ -193,21 +143,12 @@ int main(int argc, char *argv[]) {
 
 #endif
 
-    // auto end_compute = std::chrono::high_resolution_clock::now();
-    // std::chrono::duration<double, std::micro> duration_compute =
-    //     end_compute - start_compute;
-    // std::cout << "compute us: " << duration_compute.count() << std::endl;
 
     // copy data back to host
-    // auto start_comm = std::chrono::high_resolution_clock::now();
     cudaMemcpy(answer.begin(), device_answer,
                matrix1.rows * matrix2.cols * sizeof(data_type),
                cudaMemcpyDeviceToHost);
 
-    // auto end_comm = std::chrono::high_resolution_clock::now();
-    // std::chrono::duration<double, std::micro> duration_comm =
-    //     end_comm - start_comm;
-    // std::cout << "comm us: " << duration_comm.count() << std::endl;
 
     auto end = std::chrono::high_resolution_clock::now();
 
