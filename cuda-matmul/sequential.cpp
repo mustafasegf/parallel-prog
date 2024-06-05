@@ -104,9 +104,9 @@ int main(int argc, char *argv[]) {
 #else
     name = "loop";
     for (size_t i = 0; i < matrix1.rows; i++) {
-      for (size_t k = 0; k < matrix1.cols; k++) {
-        answer(i, k) = 0;
-        for (size_t j = 0; j < matrix2.cols; j++) {
+      for (size_t j = 0; j < matrix2.cols; j++) {
+        answer(i, j) = 0; 
+        for (size_t k = 0; k < matrix1.cols; k++) {
           answer(i, j) += matrix1(i, k) * matrix2(k, j);
         }
       }
