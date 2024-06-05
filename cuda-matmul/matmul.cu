@@ -29,8 +29,7 @@ __global__ void matrixMulKernel(const data_type *matrix1,
   }
 }
 
-constexpr int32_t TILE_WIDTH = 1;
-constexpr int32_t BLOCK_SIZE = 1;
+constexpr int32_t BLOCK_SIZE = 32;
 
 __global__ void gpu_square_matrix_mult(data_type *d_a, data_type *d_b,
                                        data_type *d_result, int n) {
@@ -69,38 +68,39 @@ __global__ void gpu_square_matrix_mult(data_type *d_a, data_type *d_b,
   }
 }
 
-__global__ void matrixMulSharedKernel(const data_type *matrix1,
-                                      const data_type *matrix2,
-                                      data_type *answer, int32_t n) {
-
-  __shared__ data_type shared_matrix1[TILE_WIDTH][TILE_WIDTH];
-  __shared__ data_type shared_matrix2[TILE_WIDTH][TILE_WIDTH];
-
-  int32_t row = blockIdx.y * blockDim.y + threadIdx.y;
-  int32_t col = blockIdx.x * blockDim.x + threadIdx.x;
-
-  data_type tmp = 0;
-  int32_t idx;
-  data_type sum = 0;
-
-  shared_matrix1[threadIdx.y][threadIdx.x] = 0;
-  shared_matrix2[threadIdx.y][threadIdx.x] = 0;
-  if (row < n && col < n) {
-    for (int32_t i = 0; i < cols1; i += TILE_WIDTH) {
-      shared_matrix1[threadIdx.y][threadIdx.x] =
-          matrix1[row * cols1 + i + threadIdx.x];
-      shared_matrix2[threadIdx.y][threadIdx.x] =
-          matrix2[(i + threadIdx.y) * cols2 + col];
-      __syncthreads();
-
-      for (int32_t j = 0; j < TILE_WIDTH; j++) {
-        sum += shared_matrix1[threadIdx.y][j] * shared_matrix2[j][threadIdx.x];
-      }
-      __syncthreads();
-    }
-    answer[row * cols2 + col] = sum;
-  }
-}
+// constexpr int32_t TILE_WIDTH = 32;
+// __global__ void matrixMulSharedKernel(const data_type *matrix1,
+//                                       const data_type *matrix2,
+//                                       data_type *answer, int32_t n) {
+//
+//   __shared__ data_type shared_matrix1[TILE_WIDTH][TILE_WIDTH];
+//   __shared__ data_type shared_matrix2[TILE_WIDTH][TILE_WIDTH];
+//
+//   int32_t row = blockIdx.y * blockDim.y + threadIdx.y;
+//   int32_t col = blockIdx.x * blockDim.x + threadIdx.x;
+//
+//   data_type tmp = 0;
+//   int32_t idx;
+//   data_type sum = 0;
+//
+//   shared_matrix1[threadIdx.y][threadIdx.x] = 0;
+//   shared_matrix2[threadIdx.y][threadIdx.x] = 0;
+//   if (row < n && col < n) {
+//     for (int32_t i = 0; i < cols1; i += TILE_WIDTH) {
+//       shared_matrix1[threadIdx.y][threadIdx.x] =
+//           matrix1[row * cols1 + i + threadIdx.x];
+//       shared_matrix2[threadIdx.y][threadIdx.x] =
+//           matrix2[(i + threadIdx.y) * cols2 + col];
+//       __syncthreads();
+//
+//       for (int32_t j = 0; j < TILE_WIDTH; j++) {
+//         sum += shared_matrix1[threadIdx.y][j] * shared_matrix2[j][threadIdx.x];
+//       }
+//       __syncthreads();
+//     }
+//     answer[row * cols2 + col] = sum;
+//   }
+// }
 
 int main(int argc, char *argv[]) {
   if (argc < 3) {
