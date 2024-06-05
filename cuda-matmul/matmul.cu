@@ -15,25 +15,63 @@ using data_type = double;
 
 __global__ void matrixMulKernel(const data_type *matrix1,
                                 const data_type *matrix2, data_type *answer,
-                                int32_t rows1, int32_t cols1, int32_t cols2) {
+                                int32_t n) {
 
   int32_t row = blockIdx.y * blockDim.y + threadIdx.y;
   int32_t col = blockIdx.x * blockDim.x + threadIdx.x;
   data_type sum = 0;
 
-  if (row < rows1 && col < cols2) {
-    for (int32_t i = 0; i < cols1; i++) {
-      sum += matrix1[row * cols1 + i] * matrix2[i * cols2 + col];
+  if (row < n && col < n) {
+    for (int32_t i = 0; i < n; i++) {
+      sum += matrix1[row * n + i] * matrix2[i * n + col];
     }
-    answer[row * cols2 + col] = sum;
+    answer[row * n + col] = sum;
   }
 }
 
-constexpr int32_t TILE_WIDTH = 32;
+constexpr int32_t TILE_WIDTH = 1;
+constexpr int32_t BLOCK_SIZE = 1;
+
+__global__ void gpu_square_matrix_mult(data_type *d_a, data_type *d_b,
+                                       data_type *d_result, int n) {
+  __shared__ int tile_a[BLOCK_SIZE][BLOCK_SIZE];
+  __shared__ int tile_b[BLOCK_SIZE][BLOCK_SIZE];
+
+  int row = blockIdx.y * BLOCK_SIZE + threadIdx.y;
+  int col = blockIdx.x * BLOCK_SIZE + threadIdx.x;
+  int tmp = 0;
+  int idx;
+
+  for (int sub = 0; sub < gridDim.x; ++sub) {
+    idx = row * n + sub * BLOCK_SIZE + threadIdx.x;
+    if (idx >= n * n) {
+      // n may not divisible by BLOCK_SIZE
+      tile_a[threadIdx.y][threadIdx.x] = 0;
+    } else {
+      tile_a[threadIdx.y][threadIdx.x] = d_a[idx];
+    }
+
+    idx = (sub * BLOCK_SIZE + threadIdx.y) * n + col;
+    if (idx >= n * n) {
+      tile_b[threadIdx.y][threadIdx.x] = 0;
+    } else {
+      tile_b[threadIdx.y][threadIdx.x] = d_b[idx];
+    }
+    __syncthreads();
+
+    for (int k = 0; k < BLOCK_SIZE; ++k) {
+      tmp += tile_a[threadIdx.y][k] * tile_b[k][threadIdx.x];
+    }
+    __syncthreads();
+  }
+  if (row < n && col < n) {
+    d_result[row * n + col] = tmp;
+  }
+}
+
 __global__ void matrixMulSharedKernel(const data_type *matrix1,
                                       const data_type *matrix2,
-                                      data_type *answer, int32_t rows1,
-                                      int32_t cols1, int32_t cols2) {
+                                      data_type *answer, int32_t n) {
 
   __shared__ data_type shared_matrix1[TILE_WIDTH][TILE_WIDTH];
   __shared__ data_type shared_matrix2[TILE_WIDTH][TILE_WIDTH];
@@ -41,12 +79,13 @@ __global__ void matrixMulSharedKernel(const data_type *matrix1,
   int32_t row = blockIdx.y * blockDim.y + threadIdx.y;
   int32_t col = blockIdx.x * blockDim.x + threadIdx.x;
 
+  data_type tmp = 0;
+  int32_t idx;
   data_type sum = 0;
 
   shared_matrix1[threadIdx.y][threadIdx.x] = 0;
   shared_matrix2[threadIdx.y][threadIdx.x] = 0;
-
-  if (row < rows1 && col < cols2) {
+  if (row < n && col < n) {
     for (int32_t i = 0; i < cols1; i += TILE_WIDTH) {
       shared_matrix1[threadIdx.y][threadIdx.x] =
           matrix1[row * cols1 + i + threadIdx.x];
@@ -123,17 +162,18 @@ int main(int argc, char *argv[]) {
       }
     }
 
+    dim3 gridSize((matrix2.cols + block - 1) / block,
+                  (matrix1.rows + block - 1) / block);
     dim3 blockSize(block, block);
-    dim3 gridSize(grid, grid);
 
     // start calculation
     // auto start_compute = std::chrono::high_resolution_clock::now();
 
 #ifdef SHARED
     auto name = "shared";
-    matrixMulSharedKernel<<<gridSize, blockSize>>>(device_1, device_2,
-                                                   device_answer, matrix1.rows,
-                                                   matrix1.cols, matrix2.cols);
+    // matrixMulSharedKernel<<<gridSize, blockSize>>>(device_1, device_2,
+    gpu_square_matrix_mult<<<gridSize, blockSize>>>(
+        device_1, device_2, device_answer, matrix1.rows);
 
 #elif defined CUBLAS
     auto name = "cublas";
@@ -149,8 +189,7 @@ int main(int argc, char *argv[]) {
 #else
     auto name = "naive";
     matrixMulKernel<<<gridSize, blockSize>>>(device_1, device_2, device_answer,
-                                             matrix1.rows, matrix1.cols,
-                                             matrix2.cols);
+                                             matrix1.rows);
 
 #endif
 
@@ -162,7 +201,7 @@ int main(int argc, char *argv[]) {
     // copy data back to host
     // auto start_comm = std::chrono::high_resolution_clock::now();
     cudaMemcpy(answer.begin(), device_answer,
-               matrix1.rows * matrix2.cols * sizeof(int32_t),
+               matrix1.rows * matrix2.cols * sizeof(data_type),
                cudaMemcpyDeviceToHost);
 
     // auto end_comm = std::chrono::high_resolution_clock::now();
@@ -183,7 +222,7 @@ int main(int argc, char *argv[]) {
     fileName.insert(pos, "_ans");
     Matrix<data_type> res(fileName);
 
-    // std::cout << answer << std::endl;
+    std::cout << answer << std::endl;
 
     for (size_t i = 0; i < answer.rows; i++) {
       for (size_t j = 0; j < answer.cols; j++) {
@@ -198,8 +237,6 @@ int main(int argc, char *argv[]) {
               << name << " " << std::setw(11) << size << " "
               << "grid: " << std::setw(3) << grid << " block: " << std::setw(5)
               << block << " " << duration.count() << std::endl;
-
-    // std::cout << answer << std::endl;
 
   } catch (const std::exception &e) {
     std::cerr << "Exception: " << e.what() << std::endl;
